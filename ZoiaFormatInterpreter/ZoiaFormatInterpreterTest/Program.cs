@@ -129,6 +129,8 @@ namespace ZoiaFormatInterpreterTest
                     case 81: moduleTypeDescription = "Pixel"; break;
                     case 82: moduleTypeDescription = "Midi Clock In"; break;
                     case 83: moduleTypeDescription = "Granular"; break;
+                    case 84: moduleTypeDescription = "Midi Clock Out"; break;
+                    case 85: moduleTypeDescription = "Tap to CV"; break;
                     default: moduleTypeDescription = "unknown"; break;
                 }
                 string moduleName = Encoding.UTF8.GetString(bytes, bytes.Length - 16, 16);
@@ -138,21 +140,18 @@ namespace ZoiaFormatInterpreterTest
                     string description = "unknown";
                     switch (moduleSection)
                     {
-                        case 0: description = "Module type";
-                            break;
-                        case 2: description = "Page number";
-                            break;
-                        case 3: description = "Old color value";
-                            break;
-                        case 4: description = "Grid position";
-                            break;
+                        case 0: description = "Module type"; break;
+                        case 1: description = "Module version"; break;
+                        case 2: description = "Page number"; break;
+                        case 3: description = "Old color value"; break;
+                        case 4: description = "Grid position"; break;
                         case 5: description = "Number of parameters on grid"; break;
+                        case 6: description = "Size of save-able data"; break;
                         case 7: description = "Module options 1"; break;
                         case 8: description = "Module options 2"; break;
+                        default: description = "CV jack bias"; break;
                     }
 
-                    
-                
                     int moduleParameterValue = BitConverter.ToInt32(bytes, moduleSection * 4);
                     string moduleParameterValueDescription = "";
                     if (moduleSection == 0)
@@ -247,14 +246,11 @@ namespace ZoiaFormatInterpreterTest
                 string colorDescription = "unknown";
                 switch (moduleColor)
                 {
-                    case 1:
-                        colorDescription = "Blue"; break;                    
+                    case 1: colorDescription = "Blue"; break;
                     case 2: colorDescription = "Green"; break;
                     case 3: colorDescription = "Red"; break;
-                    case 4:
-                        colorDescription = "Yellow"; break;
-                    case 5:
-                        colorDescription = "Aqua"; break;
+                    case 4: colorDescription = "Yellow"; break;
+                    case 5: colorDescription = "Aqua"; break;
                     case 6: colorDescription = "Magenta"; break;
                     case 7: colorDescription = "White"; break;
                     case 8: colorDescription = "Orange"; break;
