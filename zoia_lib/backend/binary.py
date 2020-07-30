@@ -35,6 +35,31 @@
 """
 
 import struct
+from zoia_lib.common.schemas import PatchProperties
+mod_list = PatchProperties.properties
+opt = ['Module type', 'Module version', 'Page number', 'Old color value',
+       'Grid position', 'Number of params on grid', 'Size of save-able data',
+       'Module options 1', 'Module options 2']
+
+color_map = {
+    1: 'blue',
+    2: 'green',
+    3: 'red',
+    4: 'yellow',
+    5: 'aqua',
+    6: 'magenta',
+    7: 'white'
+}
+
+
+def cntr(opt, module_sections):
+    count = 1
+    while len(opt) < len(module_sections):
+        opt = opt.copy()
+        opt.append('CV jack bias {}'.format(count))
+        count += 1
+
+    return opt
 
 
 def formatter(byt: bytes):
@@ -42,6 +67,30 @@ def formatter(byt: bytes):
 
     s = struct.Struct('I 16s I')
     size, name, n_mod = s.unpack(byt[:24])
+    print('Preset size = {}'.format(size))
+    print('Patch name = {}'.format(name.rstrip(b'\x00').decode()))
+    print('Module count = {}'.format(n_mod))
+    print('\n')
+
+    start = 24
+    for i in range(0, n_mod):
+        print('Module #{}'.format(i))
+        s = struct.Struct('I I 16s')
+        mod_size, mod_type, mod_name = s.unpack(byt[start:start+24])
+        print('Module size = {}'.format(mod_size))
+        print('Module name = {}'.format(mod_name.rstrip(b'\x00').decode()))
+
+        s = struct.Struct('{}I'.format(mod_size-5))
+        module_sections = s.unpack(byt[start+4:start+4+4*(mod_size-5)])
+
+        add = cntr(opt, module_sections)
+        itm = dict(zip(add, module_sections))
+        itm['Module type'] = '{} ({})'.format(itm['Module type'], mod_list[itm['Module type']]['name'])
+        itm['Old color value'] = '{} ({})'.format(itm['Old color value'], color_map[itm['Old color value']])
+        for j, k in itm.items():
+            print('{}: {}'.format(j, k))
+        print('\n')
+        start += 4+4*mod_size
 
     return size, name.rstrip(b'\x00').decode(), n_mod
 
