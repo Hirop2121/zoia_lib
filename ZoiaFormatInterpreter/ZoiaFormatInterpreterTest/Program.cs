@@ -14,37 +14,57 @@ namespace ZoiaFormatInterpreterTest
             {
                 filename = args[0];
             }
+            ZoiaFormatDictionary dictionary = null;
+            if (args.Length > 1)
+            {
+                string dictionaryFilename = args[1];
+                FileStream dictionaryFileStream = new FileStream(dictionaryFilename, FileMode.Open);
+                string fileContents;
+                using (StreamReader reader = new StreamReader(dictionaryFileStream))
+                {
+                    fileContents = reader.ReadToEnd();
+                }
+                dictionary = new ZoiaFormatDictionary(fileContents);
+            }
 
             FileStream fs = new FileStream(filename, FileMode.Open);
 
             byte[] patchData = new byte[fs.Length];
             fs.Read(patchData, 0, patchData.Length);
-            ZoiaPatch zoiaPatch = new ZoiaPatch(patchData);
+            ZoiaPatch zoiaPatch = new ZoiaPatch(patchData, dictionary);
 
             Console.WriteLine(String.Format("Preset size = {0}", zoiaPatch.PresetSize));
             Console.WriteLine(String.Format("Patch name = {0}", zoiaPatch.PresetName));
             Console.WriteLine(String.Format("Module count = {0}", zoiaPatch.NumberOfModules));
 
             foreach (ZoiaModule module in zoiaPatch.ModuleList)
-            {                
+            {
                 Console.WriteLine(String.Format("Module #{0}", zoiaPatch.GetModuleNumber(module)));
                 Console.WriteLine(String.Format("Module size = {0}, Module name = {1}, Color = {2} ({3})", module.ModuleSize, module.ModuleUserName, module.ModuleColorId, module.ModuleColorName));
                 foreach (ZoiaModuleParameter parameter in module.ParameterList)
                 {
-                    Console.WriteLine(String.Format("{0} ({1}) : {2} ({3}) - {4}", module.GetParameterNumber(parameter), parameter.ParameterName, parameter.ParameterValue, parameter.ParameterValueDescription, GetLongDescription(parameter.ModuleParameterData)));
+                    Console.WriteLine(String.Format("{0} ({1}) : {2} ({3}) - {4}",
+                        module.GetParameterNumber(parameter),
+                        parameter.ParameterName,
+                        parameter.ParameterValue,
+                        parameter.ParameterValueDescription,
+                        parameter.ModuleParameterData.Length == 4 ? GetLongDescription(parameter.ModuleParameterData): ""));
                 }
             }
 
             Console.WriteLine(String.Format("Number of Connections = {0}", zoiaPatch.NumberOfConnections));
             foreach (ZoiaConnection connection in zoiaPatch.ConnectionList)
             {
-                Console.WriteLine(String.Format("Connection #{0} : {1}.{2} -> {3}.{4} {5}%", 
+                byte[] connectionStrengthData = new byte[4];
+                Array.Copy(connection.ConnectionData, 16, connectionStrengthData, 0, 4);
+                Console.WriteLine(String.Format("Connection #{0} : {1}.{2} -> {3}.{4} {5}% | {6}",
                     zoiaPatch.ConnectionNumber(connection),
-                    connection.SourceModule, 
-                    connection.SourceOutputNumber, 
-                    connection.DestinationModule, 
-                    connection.DestinationInputNumber, 
-                    connection.ConnectionStrength / 100));
+                    connection.SourceModule,
+                    connection.SourceOutputNumber,
+                    connection.DestinationModule,
+                    connection.DestinationInputNumber,
+                    connection.ConnectionStrength / 100,
+                    GetLongDescription(connectionStrengthData)));
             }
 
             Console.WriteLine(String.Format("Number of Pages = {0}", zoiaPatch.NumberOfPages));
@@ -56,18 +76,18 @@ namespace ZoiaFormatInterpreterTest
             }
 
             foreach (ZoiaStarredParameter starredParameter in zoiaPatch.StarredParameterList)
-            {                
+            {
                 Console.WriteLine("Starred parameter {0} : {1}", zoiaPatch.GetStarredParameterNumber(starredParameter), GetLongDescription(starredParameter.StarredParameterData));
             }
-            
+
             Console.WriteLine(String.Format("Number of bytes read = {0}. Number of blocks = {1}", zoiaPatch.NumberOfBytesParsed, zoiaPatch.NumberOfBytesParsed / 4));
-        }        
+        }
 
         public static string GetLongDescription(byte[] bytes)
         {
             string longDescription =
                  String.Format("0x{0} = [{1}, {2}, {3}, {4}] = [{5}, {6}]",
-                    BitConverter.ToString(bytes),   
+                    BitConverter.ToString(bytes),
                     bytes[0],
                     bytes[1],
                     bytes[2],
@@ -76,7 +96,7 @@ namespace ZoiaFormatInterpreterTest
                     BitConverter.ToInt16(bytes, 2)
                     );
 
-            return longDescription;            
+            return longDescription;
         }
     }
 }
